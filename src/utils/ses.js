@@ -38,7 +38,7 @@ export const prepareAttachmentsFromFiles = async (attachments = []) => {
 
 export const prepareMailOptions = async (body = {}) => {
   try {
-    const { to, subject, text, html, cc, bcc, replyTo } = body
+    const { to, subject, html, cc, bcc, replyTo } = body
 
     if (!to) throw new Error('Missing "to" field in the email body')
     if (!subject) throw new Error('Missing "subject" field in the email body')
@@ -48,7 +48,6 @@ export const prepareMailOptions = async (body = {}) => {
       from: process.env.AWS_SES_SOURCE_EMAIL || '',
       to,
       subject,
-      text,
       html
     }
 
