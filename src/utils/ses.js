@@ -11,11 +11,10 @@ export const prepareAttachmentsFromFiles = async (attachments = []) => {
     for (const attachment of attachments) {
       if (attachment?.fileKey) {
         const file = await getFileFromS3(attachment.fileKey)
-        if (file) {
+        if (file?.success) {
           preparedAttachments.push({
             filename: attachment.filename || attachment.fileKey,
-            content: file.Body,
-            contentType: attachment.contentType || file.ContentType || 'application/octet-stream'
+            content: file?.data?.Body
           })
         } else {
           console.warn(`⚠️ [EMAIL-LAMBDA] Attachment file not found in S3 at ${attachment.fileKey} ✨`)
@@ -23,8 +22,7 @@ export const prepareAttachmentsFromFiles = async (attachments = []) => {
       } else if (attachment?.filename && attachment?.content) {
         preparedAttachments.push({
           filename: attachment.filename,
-          content: attachment.content,
-          contentType: attachment.contentType || 'application/octet-stream'
+          content: attachment.content
         })
       }
     }

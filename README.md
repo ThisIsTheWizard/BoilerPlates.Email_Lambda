@@ -73,13 +73,13 @@ npm run dev
 {
   "attachments": [
     { "fileKey": "my-reports/report.pdf" },
-    { filename: "report.pdf", content: "[STREAM]" contentType: "application/octet-stream" }
+    { "filename": "report.pdf", "content": "[BUFFER/STREAM/STRING]" }
   ],
   "to": ["recipient1@example.com", "recipient2@example.com"],
   "cc": ["manager@example.com"],
   "bcc": ["manager@example.com"],
   "subject": "Your weekly update",
-  "html": "<h1>Weekly update</h1><p>Here is the latest report.</p>",
+  "html": "<h1>Weekly update</h1><p>Here is the latest report.</p>"
 }
 ```
 
