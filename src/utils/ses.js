@@ -42,7 +42,7 @@ export const prepareMailOptions = async (body = {}) => {
 
     if (!to) throw new Error('Missing "to" field in the email body')
     if (!subject) throw new Error('Missing "subject" field in the email body')
-    if (!text && !html) throw new Error('Missing "text" or "html" field in the email body')
+    if (!html) throw new Error('Missing "html" field in the email body')
 
     const mailOptions = {
       from: process.env.AWS_SES_SOURCE_EMAIL || '',
