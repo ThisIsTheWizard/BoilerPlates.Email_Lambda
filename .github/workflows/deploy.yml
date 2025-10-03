@@ -49,6 +49,8 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --parameter-overrides SesSourceEmail="${{ secrets.MY_AWS_SES_SOURCE_EMAIL }}" \
+            --parameter-overrides \
+            S3Bucket="${{ secrets.MY_AWS_S3_BUCKET }}" \
+            SesSourceEmail="${{ secrets.MY_AWS_SES_SOURCE_EMAIL }}" \
             --region '${{ secrets.MY_AWS_DEFAULT_REGION }}' \
             --resolve-s3

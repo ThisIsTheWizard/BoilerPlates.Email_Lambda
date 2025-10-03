@@ -10,9 +10,13 @@ Globals:
     Tracing: Active
     Environment:
       Variables:
-        SES_SOURCE_EMAIL: !Ref SesSourceEmail
+        AWS_S3_BUCKET: !Ref S3Bucket
+        AWS_SES_SOURCE_EMAIL: !Ref SesSourceEmail
 
 Parameters:
+  S3Bucket:
+    Description: S3 bucket name where email attachments are stored.
+    Type: String
   SesSourceEmail:
     Description: Verified SES identity (email address or domain) used as the default sender.
     Type: String
@@ -42,10 +46,15 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - ses:SendEmail
                 - ses:SendRawEmail
               Resource:
                 - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+              Resource:
+                - !Sub arn:aws:s3:::${S3Bucket}/*
 
 Outputs:
   EmailQueue:

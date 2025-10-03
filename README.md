@@ -4,8 +4,9 @@
 [![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-orange?logo=awslambda)](https://aws.amazon.com/lambda/)
 [![Amazon SQS](https://img.shields.io/badge/AWS-SQS-FF9900?logo=amazonaws)](https://aws.amazon.com/sqs/)
 [![Amazon SES](https://img.shields.io/badge/AWS-SES-3981BF?logo=amazonses)](https://aws.amazon.com/ses/)
+[![Nodemailer](https://img.shields.io/badge/NPM-nodemailer-yellow?logo=npm)](https://nodemailer.com/)
 
-Serverless boilerplate that consumes SQS messages and delivers emails through Amazon SES. Each message describes the recipient list, subject, and HTML/text body, allowing the Lambda to act as an asynchronous email worker.
+Serverless boilerplate that consumes SQS messages and delivers richly formatted emails through Amazon SES. Messages describe recipients, subject, body content, and optional attachments. The Lambda worker converts each request into a raw MIME message with Nodemailer MailComposer before handing it off to SES.
 
 ---
 
@@ -14,16 +15,16 @@ Serverless boilerplate that consumes SQS messages and delivers emails through Am
 This project provides an **AWS Lambda function** that:
 
 1. Listens to **Amazon SQS** for outbound email requests.
-2. Parses each message for recipients, subject, and body content.
-3. Uses the modern **AWS SDK for JavaScript (v3)** to send the message via **Amazon SES**.
-4. Supports multiple recipients across `to`, `cc`, `bcc`, and optional `replyTo` fields.
+2. Parses each message for recipients, subject, body content, and attachments.
+3. Uses **Nodemailer MailComposer** to build a raw MIME email (HTML, text, inline assets, attachments).
+4. Sends the compiled message with **Amazon SES** via the AWS SDK for JavaScript (v3).
 
 ---
 
 ## ⚙️ Architecture
 
 ```
-SQS → Lambda → Amazon SES
+SQS → Lambda → MailComposer → Amazon SES (SendRawEmail)
 ```
 
 ---
@@ -33,7 +34,8 @@ SQS → Lambda → Amazon SES
 - **Runtime**: Node.js 22.x
 - **AWS Services**: Lambda, Amazon SQS, Amazon SES
 - **Libraries**:
-  - [@aws-sdk/client-ses](https://github.com/aws/aws-sdk-js-v3) – lightweight SES client from the AWS SDK for JavaScript v3
+  - [@aws-sdk/client-ses](https://github.com/aws/aws-sdk-js-v3) – SES client from the AWS SDK for JavaScript v3
+  - [Nodemailer MailComposer](https://nodemailer.com/extras/mailcomposer/) – generates raw MIME payloads for SES
 
 ---
 
@@ -69,25 +71,25 @@ npm run dev
 
 ```json
 {
-  "from": "no-reply@example.com",
+  "attachments": [
+    { "fileKey": "my-reports/report.pdf" },
+    { filename: "report.pdf", content: "[STREAM]" contentType: "application/octet-stream" }
+  ],
   "to": ["recipient1@example.com", "recipient2@example.com"],
-  "cc": "manager@example.com",
+  "cc": ["manager@example.com"],
+  "bcc": ["manager@example.com"],
   "subject": "Your weekly update",
-  "body": {
-    "html": "<h1>Weekly update</h1><p>Here is the latest report.</p>",
-    "text": "Weekly update - Here is the latest report."
-  }
+  "html": "<h1>Weekly update</h1><p>Here is the latest report.</p>",
 }
 ```
 
 Supported fields:
 
-- `from` (optional): Overrides the default SES sender configured via environment variable.
 - `to` (required): String or array of strings.
 - `cc`, `bcc`, `replyTo` (optional): String or array of strings.
 - `subject` (required): Email subject line.
-- `body` (required): Can be a string (treated as HTML) or an object with `html`/`text` keys.
-- `html`, `text`, `htmlBody`, `textBody` (optional): Direct overrides for body content.
+- `html` (required): Email body as html.
+- `attachments`/`files` (optional): String path or array of Nodemailer attachment objects (supports streams, base64 content, inline assets, etc.).
 
 ---
 
@@ -98,7 +100,9 @@ Deploy with SAM, providing the SES identity you want to use as the sender:
 ```bash
 sam deploy \
   --stack-name wizard-email-service \
-  --parameter-overrides SesSourceEmail=no-reply@example.com \
+  --parameter-overrides \
+  S3Bucket="email-attachments" \
+  SesSourceEmail="no-reply@example.com" \
   --capabilities CAPABILITY_IAM
 ```
 

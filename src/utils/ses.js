@@ -1,128 +1,101 @@
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
+import { SendRawEmailCommand, SESClient } from '@aws-sdk/client-ses'
+import { size } from 'lodash'
+import MailComposer from 'nodemailer/lib/mail-composer'
 
-const UTF8 = 'UTF-8'
+import { getFileFromS3 } from 'src/utils/s3'
 
-// Reuse a single SES client per container for connection reuse
-const sesClient = new SESClient({})
+export const prepareAttachmentsFromFiles = async (attachments = []) => {
+  try {
+    const preparedAttachments = []
 
-const toArray = (value) => {
-  if (!value) return []
-  if (Array.isArray(value)) return value.filter(Boolean)
-  if (typeof value === 'string') {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-  }
-
-  return []
-}
-
-export const normaliseMessage = (rawMessage = {}) => {
-  const {
-    to,
-    recipients,
-    subject,
-    body,
-    htmlBody,
-    textBody,
-    html,
-    text,
-    from,
-    fromEmail,
-    sender,
-    replyTo,
-    cc,
-    bcc
-  } = rawMessage
-
-  const destinationTo = toArray(to ?? recipients)
-  const destinationCc = toArray(cc)
-  const destinationBcc = toArray(bcc)
-
-  const resolvedSubject = subject?.toString()
-
-  const source = (from ?? fromEmail ?? sender ?? process.env.SES_SOURCE_EMAIL)?.toString()
-
-  const replyToAddresses = toArray(replyTo)
-
-  const resolvedHtmlBody =
-    typeof body === 'object' && body !== null
-      ? body.html ?? body.htmlBody ?? body.Html
-      : body
-
-  const resolvedTextBody =
-    typeof body === 'object' && body !== null
-      ? body.text ?? body.textBody ?? body.Text
-      : undefined
-
-  const htmlContent = htmlBody ?? html ?? resolvedHtmlBody
-  const textContent = textBody ?? text ?? resolvedTextBody
-
-  return {
-    to: destinationTo,
-    cc: destinationCc,
-    bcc: destinationBcc,
-    subject: resolvedSubject,
-    html: htmlContent?.toString(),
-    text: textContent?.toString(),
-    from: source,
-    replyTo: replyToAddresses
-  }
-}
-
-export const sendEmailViaSes = async (message = {}) => {
-  const { to, cc, bcc, subject, html, text, from, replyTo } = normaliseMessage(message)
-
-  if (!to?.length) {
-    throw new Error('SES email requires at least one recipient')
-  }
-
-  if (!subject) {
-    throw new Error('SES email requires a subject')
-  }
-
-  if (!html && !text) {
-    throw new Error('SES email requires an HTML or text body')
-  }
-
-  if (!from) {
-    throw new Error('SES email requires a source (from) address or SES_SOURCE_EMAIL env variable')
-  }
-
-  const command = new SendEmailCommand({
-    Source: from,
-    Destination: {
-      ToAddresses: to,
-      CcAddresses: cc,
-      BccAddresses: bcc
-    },
-    ReplyToAddresses: replyTo?.length ? replyTo : undefined,
-    Message: {
-      Subject: {
-        Data: subject,
-        Charset: UTF8
-      },
-      Body: {
-        ...(html
-          ? {
-              Html: {
-                Data: html,
-                Charset: UTF8
-              }
-            }
-          : {}),
-        ...(text
-          ? {
-              Text: {
-                Data: text,
-                Charset: UTF8
-              }
-            }
-          : {})
+    for (const attachment of attachments) {
+      if (attachment?.fileKey) {
+        const file = await getFileFromS3(attachment.fileKey)
+        if (file) {
+          preparedAttachments.push({
+            filename: attachment.filename || attachment.fileKey,
+            content: file.Body,
+            contentType: attachment.contentType || file.ContentType || 'application/octet-stream'
+          })
+        } else {
+          console.warn(`⚠️ [EMAIL-LAMBDA] Attachment file not found in S3 at ${attachment.fileKey} ✨`)
+        }
+      } else if (attachment?.filename && attachment?.content) {
+        preparedAttachments.push({
+          filename: attachment.filename,
+          content: attachment.content,
+          contentType: attachment.contentType || 'application/octet-stream'
+        })
       }
     }
-  })
 
-  return sesClient.send(command)
+    return preparedAttachments
+  } catch (err) {
+    console.error('❌ [EMAIL-LAMBDA] Error happened in prepareAttachmentsFromFiles 💥', err)
+    throw err
+  }
+}
+
+export const prepareMailOptions = async (body = {}) => {
+  try {
+    const { to, subject, text, html, cc, bcc, replyTo } = body
+
+    if (!to) throw new Error('Missing "to" field in the email body')
+    if (!subject) throw new Error('Missing "subject" field in the email body')
+    if (!text && !html) throw new Error('Missing "text" or "html" field in the email body')
+
+    const mailOptions = {
+      from: process.env.SES_SOURCE_EMAIL || '',
+      to,
+      subject,
+      text,
+      html
+    }
+
+    if (cc) mailOptions.cc = cc
+    if (bcc) mailOptions.bcc = bcc
+    if (replyTo) mailOptions.replyTo = replyTo
+
+    const attachments = await prepareAttachmentsFromFiles(body?.attachments || [])
+    if (size(attachments)) mailOptions.attachments = attachments
+
+    return mailOptions
+  } catch (err) {
+    console.error('❌ [EMAIL-LAMBDA] Error happened in prepareMailOptions 💥', err)
+    throw err
+  }
+}
+
+export const prepareRawMessageByMailComposer = async (body = {}) => {
+  try {
+    const mailOptions = await prepareMailOptions(body)
+
+    // Compiling email object to raw email data
+    const composer = new MailComposer(mailOptions)
+    const compiledContent = composer?.compile?.()
+
+    // Keeping BCC emails in the email content
+    compiledContent.keepBcc = true
+
+    return compiledContent?.build?.()
+  } catch (err) {
+    console.error('❌ [EMAIL-LAMBDA] Error happened in prepareRawMessageByMailComposer 💥', err)
+    throw err
+  }
+}
+
+export const sendEmailUsingSES = async (body = {}) => {
+  try {
+    const rawMessage = await prepareRawMessageByMailComposer(body)
+
+    const sesClient = new SESClient({})
+    const response = await sesClient.send(new SendRawEmailCommand({ RawMessage: { Data: rawMessage } }))
+
+    console.log('🚀 [EMAIL-LAMBDA] SES sendRawEmail response ✨', response)
+
+    return { message: 'Email sent successfully!', success: true }
+  } catch (err) {
+    console.error('❌ [EMAIL-LAMBDA] Error happened in sendEmailUsingSES 💥', err)
+    return { message: err?.message, success: false }
+  }
 }

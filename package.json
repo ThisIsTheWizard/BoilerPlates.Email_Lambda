@@ -1,7 +1,7 @@
 {
   "name": "BoilerPlates.Email_Lambda",
-  "version": "3.0.0",
-  "description": "BoilerPlates.Email_Lambda sends emails with Amazon SES when triggered by AWS SQS messages.",
+  "version": "3.1.0",
+  "description": "BoilerPlates.Email_Lambda sends rich emails with Amazon SES when triggered by AWS SQS messages.",
   "main": "src/index.js",
   "author": "The Wizard",
   "license": "MIT",
@@ -15,7 +15,10 @@
     "start": "npm run build && sam local invoke --env-vars .env.json --event event.json"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.879.0"
+    "@aws-sdk/client-s3": "^3.901.0",
+    "@aws-sdk/client-ses": "^3.879.0",
+    "lodash": "^4.17.21",
+    "nodemailer": "^6.9.15"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.3",
