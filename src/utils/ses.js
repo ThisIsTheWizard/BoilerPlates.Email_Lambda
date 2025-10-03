@@ -70,6 +70,8 @@ export const prepareRawMessageByMailComposer = async (body = {}) => {
   try {
     const mailOptions = await prepareMailOptions(body)
 
+    console.log('🚀 [EMAIL-LAMBDA] Prepared mail options ✨', mailOptions)
+
     // Compiling email object to raw email data
     const composer = new MailComposer(mailOptions)
     const compiledContent = composer?.compile?.()
@@ -87,6 +89,10 @@ export const prepareRawMessageByMailComposer = async (body = {}) => {
 export const sendEmailUsingSES = async (body = {}) => {
   try {
     const rawMessage = await prepareRawMessageByMailComposer(body)
+    if (!size(rawMessage)) {
+      console.log('❌ [EMAIL-LAMBDA] Failed to prepare raw email message ✨', rawMessage)
+      throw new Error('Failed to prepare raw email message')
+    }
 
     const sesClient = new SESClient({})
     const response = await sesClient.send(new SendRawEmailCommand({ RawMessage: { Data: rawMessage } }))
