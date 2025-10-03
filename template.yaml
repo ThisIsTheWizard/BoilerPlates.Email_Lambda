@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM template for SES email dispatcher
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 60
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        SES_SOURCE_EMAIL: !Ref SesSourceEmail
+
+Parameters:
+  SesSourceEmail:
+    Description: Verified SES identity (email address or domain) used as the default sender.
+    Type: String
+
+Resources:
+  EmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: wizard-email-service-queue
+      VisibilityTimeout: 60
+
+  EmailService:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build
+      Description: Lambda entrypoint for SES email dispatching.
+      FunctionName: wizard-email-service
+      Handler: index.handler
+      Timeout: 60
+      Events:
+        EmailQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EmailQueue.Arn
+            BatchSize: 1
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource:
+                - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+
+Outputs:
+  EmailQueue:
+    Description: ARN of the SQS queue that triggers the email Lambda.
+    Value: !GetAtt EmailQueue.Arn
+
+  EmailService:
+    Description: ARN of the Lambda function responsible for SES email delivery.
+    Value: !GetAtt EmailService.Arn

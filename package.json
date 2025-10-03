@@ -1,0 +1,33 @@
+{
+  "name": "BoilerPlates.Email_Lambda",
+  "version": "3.0.0",
+  "description": "BoilerPlates.Email_Lambda sends emails with Amazon SES when triggered by AWS SQS messages.",
+  "main": "src/index.js",
+  "author": "The Wizard",
+  "license": "MIT",
+  "scripts": {
+    "prebuild": "rm -rf build .aws-sam && npm run lint",
+    "build": "node esbuild.config.js && sam build --template-file template.yaml --build-dir .aws-sam/build",
+    "dev": "NODE_ENV=development nodemon -e js -w . --ignore build/ --exec npm run start",
+    "format": "prettier --write .",
+    "lint": "eslint --quiet . --ignore-pattern .aws-sam/ --ignore-pattern build/",
+    "lint-fix": "eslint --quiet . --fix",
+    "start": "npm run build && sam local invoke --env-vars .env.json --event event.json"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.879.0"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.23.3",
+    "@babel/node": "^7.22.19",
+    "@babel/preset-env": "^7.23.7",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.9.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.2",
+    "globals": "^15.9.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.1.1",
+    "prettier-plugin-organize-imports": "^4.1.0"
+  }
+}
