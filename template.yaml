@@ -48,6 +48,7 @@ Resources:
               Action:
                 - ses:SendRawEmail
               Resource:
+                - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/*
                 - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
             - Effect: Allow
               Action:
