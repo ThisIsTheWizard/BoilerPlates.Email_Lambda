@@ -29,12 +29,13 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.MY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.MY_AWS_ACCESS_SECRET_ID }}
-          aws-region: ${{ secrets.MY_AWS_DEFAULT_REGION }}
+      # TODO: Configure AWS credentials
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v3
+      #   with:
+      #     aws-access-key-id: ${{ secrets.MY_AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.MY_AWS_ACCESS_SECRET_ID }}
+      #     aws-region: ${{ secrets.MY_AWS_DEFAULT_REGION }}
 
       - name: Install dependencies
         run: npm i
@@ -42,15 +43,16 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Deploy project
-        run: |
-          sam deploy \
-            --stack-name wizard-email-service \
-            --capabilities CAPABILITY_IAM \
-            --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides \
-            S3Bucket="${{ secrets.MY_AWS_S3_BUCKET }}" \
-            SesSourceEmail="${{ secrets.MY_AWS_SES_SOURCE_EMAIL }}" \
-            --region '${{ secrets.MY_AWS_DEFAULT_REGION }}' \
-            --resolve-s3
+      # TODO: Deploy project
+      # - name: Deploy project
+      #   run: |
+      #     sam deploy \
+      #       --stack-name wizard-email-service \
+      #       --capabilities CAPABILITY_IAM \
+      #       --no-confirm-changeset \
+      #       --no-fail-on-empty-changeset \
+      #       --parameter-overrides \
+      #       S3Bucket="${{ secrets.MY_AWS_S3_BUCKET }}" \
+      #       SesSourceEmail="${{ secrets.MY_AWS_SES_SOURCE_EMAIL }}" \
+      #       --region '${{ secrets.MY_AWS_DEFAULT_REGION }}' \
+      #       --resolve-s3
