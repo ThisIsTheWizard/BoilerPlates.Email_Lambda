@@ -1,8 +1,10 @@
 import babelParser from '@babel/eslint-parser'
 import prettierPlugin from 'eslint-plugin-prettier'
+import eslintConfigPrettier from 'eslint-config-prettier'
 import globals from 'globals'
 
 export default [
+  eslintConfigPrettier,
   {
     languageOptions: {
       ecmaVersion: 8,
@@ -20,8 +22,6 @@ export default [
     plugins: { prettier: prettierPlugin },
     rules: {
       'arrow-body-style': ['error', 'as-needed'],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'linebreak-style': ['error', 'unix'],
       'no-undef': 'error',
       'no-underscore-dangle': 'off',
       'no-unneeded-ternary': 'off',
@@ -29,9 +29,7 @@ export default [
       'object-shorthand': 'error',
       'one-var': ['error', { const: 'never' }],
       'prettier/prettier': ['error'],
-      'prefer-const': 'error',
-      quotes: ['error', 'single', { avoidEscape: true }],
-      semi: ['error', 'never']
+      'prefer-const': 'error'
     }
   },
   {
