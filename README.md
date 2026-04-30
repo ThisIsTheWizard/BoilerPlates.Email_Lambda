@@ -116,4 +116,5 @@ MIT License. Use it, remix it, and build amazing email workflows.
 
 ---
 
-👋 Created by [Elias Shekh](https://portfolio.wizardcld.com). Give the repo a ⭐ if it helped you!
+👋 Created by [Elias Shekh](https://eliasshekh.com).
+If you find this useful, ⭐ the repo or reach out!
